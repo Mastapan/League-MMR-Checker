@@ -70,6 +70,9 @@ public class Main {
 
 
         List<MatchReference> matchinfo = api.getMatchList(id).getMatches();
+        for(int i = 0 ; i<matchinfo.size(); i++){
+            System.out.println(matchinfo.get(i));
+        }
         //filter by ranked 5v5 i guess,
         List<MatchReference> shortened = matchinfo.subList(0, 10);
         long[] matchidlist = new long[shortened.size()];
