@@ -23,6 +23,7 @@ public class Main {
     public static HashMap<String, Integer> elomap = new HashMap<String, Integer>();
     public static String[] Tiers = {"BRONZE","SILVER","GOLD","PLATINUM","DIAMOND"};
     public static String[] Divisions = {"V","IV","III","II","I"};
+    public static String summonerName;
 
 
 
@@ -40,44 +41,37 @@ public class Main {
                 }
             }
 
-
+//TODO filter ranked solo, account for baddies not in leagues , weight by recent, make code less shitty
 
 
 
         Scanner findUsername=new Scanner(System.in);
         System.out.print("What is your summoner name?:");
-        String summonerName= findUsername.next();
+        summonerName= findUsername.next();
 
-        int output = calculate(elochart(playeridlist(matchidlist(summonerName,summonerid(summonerName)),summonerid(summonerName))));
+        int output = calculate(elochart(playeridlist(matchidlist(summonerid(summonerName)),summonerid(summonerName)),matchidlist(summonerid(summonerName))));
         System.out.println("lel");
         System.out.println(output);
         System.out.println("rip");
 
-
-
-
-
-
-
-
-        //System.out.println(id);
     }
     public static long summonerid(String summonerName) throws RiotApiException{
-        Map<String, Summoner> summoners = api.getSummonersByName(Region.NA, "Mastapan");
-        Summoner summoner = summoners.get("mastapan");
+        Map<String, Summoner> summoners = api.getSummonersByName(Region.NA, "kumoriyuki");
+        Summoner summoner = summoners.get("kumoriyuki");
         System.out.println(summoner.getName());
         long value = summoner.getId();
         return value;
 
     }
-    public static long[] matchidlist(String summonerName, long id) throws RiotApiException{
+    public static long[] matchidlist(long id) throws RiotApiException{
         //sets stuff up
 
 
 
 
         List<MatchReference> matchinfo = api.getMatchList(id).getMatches();
-        List<MatchReference> shortened = matchinfo.subList(0,5);
+        //filter by ranked 5v5 i guess,
+        List<MatchReference> shortened = matchinfo.subList(0, 10);
         long[] matchidlist = new long[shortened.size()];
         for(int i=0; i<shortened.size(); i ++){
             matchidlist[i] =  shortened.get(i).getMatchId();
@@ -86,21 +80,29 @@ public class Main {
         return matchidlist;
 
     }
-    public static long[][] playeridlist(long[] matchid,long id) throws RiotApiException{
+    public static Map<Long, List<Long>> playeridlist(long[] matchid,long id) throws RiotApiException{
         //Makes list of past x matches and players assocaiated with each match
-        long[][] playeridlist = new long[matchid.length][10];
+        Map<Long, List<Long>> playeridlist = new HashMap<Long, List<Long>>();
+        //long[][] playeridlist = new long[matchid.length][];
         for (int i = 0; i < matchid.length; i++) {
             MatchDetail match = api.getMatch(matchid[i]);
             List<ParticipantIdentity> hi = match.getParticipantIdentities();
+            List<Long> templist = new ArrayList<Long>();
 
-            for(int j = 0 ; j < hi.size(); j ++) {
-               // System.out.println(hi.size());
-               // if (!(hi.get(j).getPlayer().getSummonerId() == id)) {
+            for(int j = 0, k =0 ; k < hi.size(); j ++,k++) {
+                if((hi.get(j).getPlayer().getSummonerId() == id)){
+                    k++;
+                }
+
+                if (!(hi.get(j).getPlayer().getSummonerId() == id)) {
                     //not working
-                    playeridlist[i][j] = hi.get(j).getPlayer().getSummonerId();
-              //  }
+
+                    templist.add(hi.get(k).getPlayer().getSummonerId());
+
+                }
 
             }
+            playeridlist.put(matchid[i],templist);
             try{
                 Thread.sleep(2000);
 
@@ -114,17 +116,29 @@ public class Main {
         return playeridlist;
 
     }
-    public static ArrayList<Integer> elochart(long[][] playeridlist) throws RiotApiException{
+    public static ArrayList<Integer> elochart(Map<Long,List<Long>> playeridlist,long[] matchid) throws RiotApiException{
+
+//        for(int i = 0; i < playeridlist.length; i++){
+//            for(int j = 0 ; j< playeridlist[i].length; j++) {
+//                System.out.println(playeridlist[i][j]);
+//            }
+//
+//        }
+
+
+
+
         //Returns the "elo" of players using summoner id
 
 
         List<List<List<League>>> league = new ArrayList<List<List<League>>>();
 
-        for(int i = 0; i < playeridlist.length; i++){
+        for(int i = 0; i < matchid.length; i++){
             List<List<League>> leaguesub = new ArrayList<List<League>>();
-            for(int j = 0 ; j< playeridlist[i].length; j++) {
-                System.out.println(playeridlist[i][j]);
-                leaguesub.add(api.getLeagueEntryBySummoner(Region.NA, playeridlist[i][j]));
+            for(int j = 0 ; j< playeridlist.get(matchid[i]).size(); j++) {
+                System.out.println(playeridlist.get(matchid[i]).get(j));
+                //something something not in a league
+                leaguesub.add(api.getLeagueEntryBySummoner(Region.NA, playeridlist.get(matchid[i]).get(j)));
                 try{
                     Thread.sleep(2000);
 
@@ -139,8 +153,9 @@ public class Main {
         ArrayList<Integer> elolist = new ArrayList<Integer>();
         for(List<List<League>> hi : league) {
 
-            for (List<League> z : hi) {
+            //for (List<League> z : hi) {
                 //check prolly
+            List<League> z = hi.get(0);
                 for (League s : z) {
                     String tier = s.getTier();
                     for (LeagueEntry y : s.getEntries()) {
@@ -151,7 +166,7 @@ public class Main {
 
                     }
                 }
-            }
+           // }
         }
             return elolist;
 
@@ -161,6 +176,7 @@ public class Main {
     public static int calculate(ArrayList<Integer> elolist){
         int sum = 0;
         for(int i = 0; i<elolist.size(); i++){
+            System.out.println(elolist.get(i));
            sum += elolist.get(i);
         }
 
@@ -175,7 +191,7 @@ public class Main {
 
 
     public static int mmr(String tier, String Division, int leaguepoints) {
-        return elomap.get(tier+Division)*(70*leaguepoints/100); //check int div
+        return elomap.get(tier+Division)+(70*leaguepoints/100); //check int div
     }
 
 }
