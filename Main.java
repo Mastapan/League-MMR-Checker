@@ -41,7 +41,7 @@ public class Main {
                 }
             }
 
-//TODO filter ranked solo, account for baddies not in leagues , weight by recent, make code less shitty
+//TODO filter ranked solo, account for baddies not in leagues , weight by recent, make code less shitty,(prolly fixed) for some reason if i retrieve 5 games it only gives me 2 wtf?
 
 
 
@@ -151,12 +151,17 @@ public class Main {
 
                 }
         ArrayList<Integer> elolist = new ArrayList<Integer>();
+        System.out.println("wtf is league" + league.size());
         for(List<List<League>> hi : league) {
 
-            //for (List<League> z : hi) {
+
+            for (List<League> z : hi) {
                 //check prolly
-            List<League> z = hi.get(0);
-                for (League s : z) {
+            //List<League> z = hi.get(0);
+            System.out.println("number of games " + z.size());
+               // for (League s : z) {
+                League s = z.get(0);
+
                     String tier = s.getTier();
                     for (LeagueEntry y : s.getEntries()) {
                         int leaguepoints = y.getLeaguePoints();
@@ -165,9 +170,10 @@ public class Main {
 
 
                     }
-                }
-           // }
+                //}
+           }
         }
+        System.out.println(elolist.size() + "wtf why has it shrunk");
             return elolist;
 
 
